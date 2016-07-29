@@ -70,3 +70,9 @@ If the system cannot identify an app that can respond to the intent, your app ma
 For this reason, you should first verify that a receiving application is installed before you call `startActivity()`.
 To verify that an app is available to receive the intent, call `resolveActivity()` on your Intent object.
 If the result is non-null, there is at least one app that can handle the intent and it's safe to call `startActivity()`.
+
+```java
+if (atIntent.resolveActivity(getPackageManager()) != null) {
+    // ...
+}
+```
