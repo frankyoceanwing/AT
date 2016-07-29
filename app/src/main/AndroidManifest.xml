@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          package="com.oceanwing.at">
+
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_MOCK_LOCATION"/>
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+        <activity
+            android:name=".MockGPSActivity"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="com.oceanwing.at.action.START"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data
+                    android:host="@string/host"
+                    android:path="@string/path"
+                    android:scheme="@string/scheme"/>
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="com.oceanwing.at.action.STOP"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".MockGPSService"
+            android:exported="false">
+        </service>
+
+        <meta-data
+            android:name="HERE_MAP_APP_ID"
+            android:value="c7UDnNWvQl2dypUlW2YX"/>
+        <meta-data
+            android:name="HERE_MAP_APP_CODE"
+            android:value="7aWDOy8CdYqbD-AXqa9Jbw"/>
+
+        <meta-data
+            android:name="GOOGLE_MAP_API_KEY"
+            android:value="AIzaSyBc6iEK9pI1kwJAyPvCdS0tpeQZyJU8igQ"/>
+    </application>
+
+</manifest>
