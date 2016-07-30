@@ -30,9 +30,9 @@ In order to launch AT with an intent you must first create an `Intent` object, s
       - `speed=60.0`
     - **origin** (**required**): latitude,longitude value
       - `origin=37.7256676,-122.4496459`
-    - *destination** (**required**): latitude/longitude value
+    - **destination** (**required**): latitude/longitude value
       - `destination=36.1633689,-115.1444786`
-    - run (optional, string):
+    - *run* (optional, string):
       - `run=Once`
       - `run=Forever`
 
