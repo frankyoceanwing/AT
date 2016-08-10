@@ -17,22 +17,30 @@ import android.support.v4.app.NotificationCompat;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.oceanwing.at.model.LatLng;
+import com.oceanwing.at.util.CSVUtils;
+import com.oceanwing.at.util.DateTimeUtils;
+import com.oceanwing.at.util.StorageUtils;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InvalidObjectException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
 public class MockGPSService extends IntentService {
 
-    private static final String TAG = "MockGPSService";
+    private static final String TAG = MockGPSService.class.getSimpleName();
 
     // Defines and instantiates an object for handling status updates.
     private BroadcastNotifier mBroadcaster = new BroadcastNotifier(this);
@@ -41,6 +49,10 @@ public class MockGPSService extends IntentService {
 
     public static final String ACTION_START = "com.oceanwing.at.action.START";
     public static final String ACTION_STOP = "com.oceanwing.at.action.STOP";
+    public static final String ACTION_PAUSE = "com.oceanwing.at.action.PAUSE";
+    public static final String ACTION_RESUME = "com.oceanwing.at.action.RESUME";
+    public static final String ACTION_ENABLE_GPS = "com.oceanwing.at.action.ENABLE_GPS";
+    public static final String ACTION_DISABLE_GPS = "com.oceanwing.at.action.DISABLE_GPS";
 
     public static final String API = "com.oceanwing.at.extra.api";
     public static final String RUN = "com.oceanwing.at.extra.run";
@@ -54,8 +66,10 @@ public class MockGPSService extends IntentService {
     private static final String HERE_MAP_APP_CODE = "HERE_MAP_APP_CODE";
     private static final String GOOGLE_MAP_API_KEY = "GOOGLE_MAP_API_KEY";
 
-    private static String mMockProviderName = LocationManager.GPS_PROVIDER; // 模拟GPS
+    private static final String mMockProviderName = LocationManager.GPS_PROVIDER; // 模拟GPS
     private static LocationManager mLocationManager;
+
+    private static boolean isPaused;
 
     private double mOriginLat, mOriginLng, mDestLat, mDestLng;
     private float mSpeed;
@@ -73,7 +87,8 @@ public class MockGPSService extends IntentService {
         foreground();
 
         mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        enableTestProvider();
+        addTestProvider(mMockProviderName);
+        setTestProviderEnabled(mMockProviderName, true);
     }
 
     private void foreground() {
@@ -91,19 +106,37 @@ public class MockGPSService extends IntentService {
         startForeground(ONGOING_NOTIFICATION_ID, notification);
     }
 
-    private void enableTestProvider() {
-        mLocationManager.addTestProvider(mMockProviderName,
-                "requiresNetwork" == "", "requiresSatellite" == "requiresSatellite",
-                "requiresCell" == "", "hasMonetaryCost" == "",
-                "supportsAltitude" == "", "supportsSpeed" == "supportsSpeed",
-                "supportsBearing" == "supportsBearing",
-                Criteria.POWER_LOW,
-                Criteria.ACCURACY_FINE);
-        mLocationManager.setTestProviderEnabled(mMockProviderName, true);
+    private void addTestProvider(String mockProviderName) {
+        switch (mockProviderName) {
+            case LocationManager.GPS_PROVIDER:
+                mLocationManager.addTestProvider(mMockProviderName,
+                        "requiresNetwork" == "", "requiresSatellite" == "requiresSatellite",
+                        "requiresCell" == "", "hasMonetaryCost" == "",
+                        "supportsAltitude" == "", "supportsSpeed" == "supportsSpeed",
+                        "supportsBearing" == "supportsBearing",
+                        Criteria.POWER_LOW,
+                        Criteria.ACCURACY_FINE);
+                break;
+        }
     }
 
-    private static void disableTestProvider() {
-        mLocationManager.removeTestProvider(mMockProviderName);
+    private static void setTestProviderEnabled(String mockProviderName, boolean enabled) {
+        if (mLocationManager != null) {
+            mLocationManager.setTestProviderEnabled(mockProviderName, enabled);
+        }
+    }
+
+    private static void removeTestProvider(String mockProviderName) {
+        if (mLocationManager != null) {
+            mLocationManager.removeTestProvider(mockProviderName);
+        }
+    }
+
+    private static boolean isTestProviderEnabled(String mockProviderName) {
+        if (mLocationManager != null) {
+            return mLocationManager.isProviderEnabled(mockProviderName);
+        }
+        return false;
     }
 
     public static void start(Context context, String api, String run, double originLat, double originLng, double destLat, double destLng, float speed) {
@@ -120,25 +153,43 @@ public class MockGPSService extends IntentService {
     }
 
     public static void stop(Context context) {
-        disableTestProvider();
+        removeTestProvider(mMockProviderName);
         Intent intent = new Intent(context, MockGPSService.class);
         intent.setAction(ACTION_STOP);
         context.stopService(intent);
+    }
+
+    public static boolean isPaused() {
+        return isPaused;
+    }
+
+    public static void setPaused(boolean paused) {
+        isPaused = paused;
+    }
+
+    public static boolean isGPSEnabled() {
+        return isTestProviderEnabled(LocationManager.GPS_PROVIDER);
+    }
+
+    public static void setGPSEnabled(boolean enabled) {
+        setTestProviderEnabled(LocationManager.GPS_PROVIDER, enabled);
     }
 
     @Override
     protected void onHandleIntent(Intent intent) {
         if (intent != null) {
             final String action = intent.getAction();
-            if (ACTION_START.equals(action)) {
-                final String api = intent.getStringExtra(API);
-                final String run = intent.getStringExtra(RUN);
-                final float speed = kmh2mps(intent.getFloatExtra(SPEED, 0F));
-                final double originLat = intent.getDoubleExtra(ORIGIN_LAT, 0D);
-                final double originLng = intent.getDoubleExtra(ORIGIN_LNG, 0D);
-                final double destLat = intent.getDoubleExtra(DEST_LAT, 0D);
-                final double destLng = intent.getDoubleExtra(DEST_LNG, 0D);
-                handleActionStart(api, run, originLat, originLng, destLat, destLng, speed);
+            switch (action) {
+                case ACTION_START:
+                    final String api = intent.getStringExtra(API);
+                    final String run = intent.getStringExtra(RUN);
+                    final float speed = kmh2mps(intent.getFloatExtra(SPEED, 0F));
+                    final double originLat = intent.getDoubleExtra(ORIGIN_LAT, 0D);
+                    final double originLng = intent.getDoubleExtra(ORIGIN_LNG, 0D);
+                    final double destLat = intent.getDoubleExtra(DEST_LAT, 0D);
+                    final double destLng = intent.getDoubleExtra(DEST_LNG, 0D);
+                    handleActionStart(api, run, originLat, originLng, destLat, destLng, speed);
+                    break;
             }
         }
     }
@@ -155,28 +206,45 @@ public class MockGPSService extends IntentService {
 
         List<LatLng> points = calcRoute(api, originLat, originLng, destLat, destLng);
         points = optimizePoints(points, speed);
-        LatLng current, next = null;
-        String log;
-        float bearing;
-        double distance;
+
         try {
+            savePoints(points);
+
+            LatLng current, next = null;
+            String log;
+            int state = BroadcastNotifier.STATE_ACTION_ERROR;
+            float bearing;
+            double distance;
             do {
-                for (int i = 0; i < points.size() - 1; i++) {
-                    current = points.get(i);
-                    next = points.get(i + 1);
-                    bearing = current.bearingTo(next);
-                    distance = current.distanceTo(next);
+                for (int i = 0; i < points.size() - 1; ) {
+                    if (isTestProviderEnabled(mMockProviderName)) {
+                        current = points.get(i);
+                        next = points.get(i + 1);
+                        bearing = current.bearingTo(next);
+                        distance = current.distanceTo(next);
 
-                    log = String.format("[%d/%d] (%.6f, %.6f) -> (%.6f, %.6f), bearing=%.0f, distance=%.3fkm",
-                            (i + 1), points.size(),
-                            current.getLat(), current.getLng(),
-                            next.getLat(), next.getLng(),
-                            bearing, distance, speed);
+                        setLocation(mMockProviderName, current.getLat(), current.getLng(), bearing, speed);
+
+                        log = String.format("[%d/%d] (%.6f, %.6f) -> (%.6f, %.6f), bearing=%.0f, distance=%.3fkm",
+                                (i + 1), points.size(),
+                                current.getLat(), current.getLng(),
+                                next.getLat(), next.getLng(),
+                                bearing, distance, speed);
+                        state = BroadcastNotifier.STATE_ACTION_MOCKING;
+                    } else {
+                        log = "no GPS";
+                        state = BroadcastNotifier.STATE_ACTION_NO_GPS;
+                    }
+
+                    if (isPaused) {
+                        log = "pausing";
+                        state = BroadcastNotifier.STATE_ACTION_PAUSING;
+                    } else {
+                        i++; // 往下走
+                    }
+
                     Log.i(TAG, log);
-
-                    setLocation(current.getLat(), current.getLng(), bearing, speed);
-
-                    mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_MOCKING, log);
+                    mBroadcaster.broadcast(state, log);
 
                     //long t = (long) (distance / speed * 1000 * 1000); // m -> km, ms ->s
                     //Log.i(TAG, String.format("wait=%dms", t));
@@ -185,10 +253,12 @@ public class MockGPSService extends IntentService {
                 if (next != null) {
                     log = String.format("destination(%.6f, %.6f)", next.getLat(), next.getLng());
                     Log.i(TAG, log);
-                    setLocation(next.getLat(), next.getLng(), 0, 0);
+                    setLocation(mMockProviderName, next.getLat(), next.getLng(), 0, 0);
                     mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_MOCKING, log);
                 }
             } while (getString(R.string.run_forever).equals(run));
+        } catch (IOException e) {
+            Log.e(TAG, "failed to save points", e);
         } catch (IllegalArgumentException e) {
             Log.e(TAG, "failed to set location", e);
         } catch (InterruptedException e) {
@@ -196,6 +266,33 @@ public class MockGPSService extends IntentService {
         } finally {
             mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_COMPLETE, "complete");
         }
+    }
+
+    private void savePoints(List<LatLng> points) throws IOException {
+        if (StorageUtils.isExternalWritable()) {
+            try (FileOutputStream os = new FileOutputStream(getPointsFile())) {
+                CSVUtils.write(os, toCSVData(points));
+                Log.i(TAG, "points saved");
+            }
+        }
+    }
+
+    private List<String[]> toCSVData(List<LatLng> points) {
+        List<String[]> rows = new ArrayList<>();
+        for (LatLng p : points) {
+            String[] row = new String[2];
+            row[0] = String.valueOf(p.getLng());
+            row[1] = String.valueOf(p.getLng());
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    private File getPointsFile() {
+        return new File(StorageUtils.getExternalAppFilesDir(getApplicationContext())
+                + File.separator
+                + DateTimeUtils.getCurrentTimeInString(new SimpleDateFormat("yyyyMMddHHmmss"))
+                + ".csv");
     }
 
     private float kmh2mps(float speed) {
@@ -381,8 +478,8 @@ public class MockGPSService extends IntentService {
         return new String(getUrlBytes(urlSpec));
     }
 
-    private void setLocation(double latitude, double longitude, float bearing, float speed) {
-        Location loc = new Location(mMockProviderName);
+    private void setLocation(String mockProviderName, double latitude, double longitude, float bearing, float speed) {
+        Location loc = new Location(mockProviderName);
         loc.setAccuracy(Criteria.ACCURACY_FINE);
         loc.setTime(System.currentTimeMillis());
         loc.setLatitude(latitude);
@@ -398,11 +495,11 @@ public class MockGPSService extends IntentService {
         }
         loc.setSpeed(speed);
 
-        mLocationManager.setTestProviderLocation(mMockProviderName, loc);
+        mLocationManager.setTestProviderLocation(mockProviderName, loc);
 
         mLastLocation = loc;
 
-        Log.i(TAG, String.format("lat=%.6f, lng=%.6f, bearing=%.0f, speed=%.2fm/s", latitude, longitude, loc.getBearing(), speed));
+        Log.d(TAG, String.format("lat=%.6f, lng=%.6f, bearing=%.0f, speed=%.2fm/s", latitude, longitude, loc.getBearing(), speed));
     }
 
     private List<LatLng> optimizePoints(List<LatLng> points, float speed) {
@@ -426,7 +523,7 @@ public class MockGPSService extends IntentService {
                 LatLng start = current;
                 for (int j = 0; j < n; j++) {
                     LatLng tmp = start.destinationPoint(step, bearing);
-                    Log.i(TAG, String.format("destinationPoint(%d-%d): lat=%.6f, lng=%.6f", i, j, tmp.getLat(), tmp.getLng()));
+                    Log.d(TAG, String.format("destinationPoint(%d-%d): lat=%.6f, lng=%.6f", i, j, tmp.getLat(), tmp.getLng()));
                     newPoints.add(tmp);
                     start = tmp;
                 }

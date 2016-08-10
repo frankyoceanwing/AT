@@ -1,232 +1,268 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:background="@color/grey50"
-              android:orientation="vertical"
-              android:paddingBottom="@dimen/activity_vertical_margin"
-              android:paddingLeft="@dimen/activity_horizontal_margin"
-              android:paddingRight="@dimen/activity_horizontal_margin"
-              android:paddingTop="@dimen/activity_vertical_margin">
-
-    <TextView
-        android:id="@+id/options_tv"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/label_height"
-        android:background="@color/grey100"
-        android:gravity="center_vertical"
-        android:text="@string/options"
-        android:textAppearance="?android:attr/textAppearanceMedium"/>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/grey50">
 
     <LinearLayout
+
         android:layout_width="match_parent"
-        android:layout_height="@dimen/item_height"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:weightSum="1">
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingBottom="@dimen/activity_vertical_margin"
+        android:paddingLeft="@dimen/activity_horizontal_margin"
+        android:paddingRight="@dimen/activity_horizontal_margin"
+        android:paddingTop="@dimen/activity_vertical_margin">
 
         <TextView
-            android:id="@+id/api_tv"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.25"
-            android:text="@string/api"/>
-
-        <Spinner
-            android:id="@+id/api_sp"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.75"/>
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/item_height"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:weightSum="1">
-
-        <TextView
-            android:id="@+id/speed_tv"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.25"
-            android:text="@string/speed"/>
+            android:id="@+id/options_tv"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/label_height"
+            android:background="@color/grey100"
+            android:gravity="center_vertical"
+            android:text="@string/options"
+            android:textAllCaps="true"/>
 
         <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.75"
-            android:orientation="horizontal">
-
-            <EditText
-                android:id="@+id/speed_et"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:ems="5"
-                android:hint="60"
-                android:inputType="numberDecimal"/>
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/item_height"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:weightSum="1">
 
             <TextView
-                android:id="@+id/speed_unit_tv"
-                android:layout_width="wrap_content"
+                android:id="@+id/api_tv"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="@string/speed_unit"/>
-        </LinearLayout>
-    </LinearLayout>
+                android:layout_weight="0.25"
+                android:text="@string/api"/>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:weightSum="1">
+            <Spinner
+                android:id="@+id/api_sp"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.75"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/item_height"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:weightSum="1">
+
+            <TextView
+                android:id="@+id/speed_tv"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.25"
+                android:text="@string/speed"/>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.75"
+                android:orientation="horizontal">
+
+                <EditText
+                    android:id="@+id/speed_et"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ems="5"
+                    android:hint="60"
+                    android:inputType="numberDecimal"/>
+
+                <TextView
+                    android:id="@+id/speed_unit_tv"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/speed_unit"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:weightSum="1">
+
+            <TextView
+                android:id="@+id/run_tv"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/item_height"
+                android:layout_weight="0.25"
+                android:gravity="center_vertical"
+                android:text="@string/run"/>
+
+            <RadioGroup
+                android:id="@+id/run_rg"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.75"
+                android:orientation="horizontal">
+
+                <RadioButton
+                    android:id="@+id/run_once_rb"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.375"
+                    android:checked="true"
+                    android:text="@string/run_once"
+                    />
+
+                <RadioButton
+                    android:id="@+id/run_forever_rb"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.375"
+                    android:text="@string/run_forever"
+                    />
+            </RadioGroup>
+        </LinearLayout>
 
         <TextView
-            android:id="@+id/run_tv"
-            android:layout_width="0dp"
-            android:layout_height="@dimen/item_height"
-            android:layout_weight="0.25"
+            android:id="@+id/origin_tv"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/label_height"
+            android:background="@color/grey100"
             android:gravity="center_vertical"
-            android:text="@string/run"/>
+            android:text="@string/origin"
+            android:textAllCaps="true"/>
 
-        <RadioGroup
-            android:id="@+id/run_rg"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.75"
-            android:orientation="horizontal">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/item_height"
+            android:orientation="horizontal"
+            android:weightSum="1">
 
-            <RadioButton
-                android:id="@+id/run_once_rb"
+            <EditText
+                android:id="@+id/origin_lat_et"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="0.375"
-                android:checked="true"
-                android:text="@string/run_once"
-                />
+                android:layout_weight="0.5"
+                android:ems="10"
+                android:hint="37.725715"
+                android:inputType="numberDecimal|numberSigned"/>
 
-            <RadioButton
-                android:id="@+id/run_forever_rb"
+            <EditText
+                android:id="@+id/origin_lng_et"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="0.375"
-                android:text="@string/run_forever"
-                />
-        </RadioGroup>
+                android:layout_weight="0.5"
+                android:ems="10"
+                android:hint="-122.449539"
+                android:inputType="numberDecimal|numberSigned"/>
+        </LinearLayout>
 
 
-    </LinearLayout>
+        <TextView
+            android:id="@+id/dest_tv"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/label_height"
+            android:background="@color/grey100"
+            android:gravity="center_vertical"
+            android:text="@string/destination"
+            android:textAllCaps="true"/>
 
-    <TextView
-        android:id="@+id/origin_tv"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/label_height"
-        android:background="@color/grey100"
-        android:gravity="center_vertical"
-        android:text="@string/origin"
-        android:textAppearance="?android:attr/textAppearanceMedium"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/item_height"
+            android:orientation="horizontal"
+            android:weightSum="1">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/item_height"
-        android:orientation="horizontal"
-        android:weightSum="1">
+            <EditText
+                android:id="@+id/dest_lat_et"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:ems="10"
+                android:hint="37.792695"
+                android:inputType="numberDecimal|numberSigned"/>
+
+            <EditText
+                android:id="@+id/dest_lng_et"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:ems="10"
+                android:hint="-122.404436"
+                android:inputType="numberDecimal|numberSigned"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/button_height"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:weightSum="1">
+
+            <Button
+                android:id="@+id/start_btn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.33"
+                android:text="@string/start"/>
+
+            <Button
+                android:id="@+id/pause_btn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.34"
+                android:text="@string/pause"/>
+
+            <Button
+                android:id="@+id/stop_btn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.33"
+                android:text="@string/stop"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/item_height"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:weightSum="1">
+
+            <TextView
+                android:id="@+id/gps_tv"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.25"
+                android:text="@string/gps"/>
+
+            <Switch
+                android:id="@+id/gps_switch"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.75"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/console_tv"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/label_height"
+            android:background="@color/grey100"
+            android:gravity="center_vertical"
+            android:text="@string/console"
+            android:textAllCaps="true"/>
 
         <EditText
-            android:id="@+id/origin_lat_et"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.5"
-            android:ems="10"
-            android:hint="37.725715"
-            android:inputType="numberDecimal|numberSigned"/>
+            android:id="@+id/console_et"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:focusable="false"
+            android:gravity="top|left"
+            android:inputType="textMultiLine"
+            android:maxLines="20"
+            android:minLines="10"
+            android:scrollbars="vertical"
+            android:textAppearance="?android:attr/textAppearanceSmall"/>
 
-        <EditText
-            android:id="@+id/origin_lng_et"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.5"
-            android:ems="10"
-            android:hint="-122.449539"
-            android:inputType="numberDecimal|numberSigned"/>
     </LinearLayout>
-
-
-    <TextView
-        android:id="@+id/dest_tv"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/label_height"
-        android:background="@color/grey100"
-        android:gravity="center_vertical"
-        android:text="@string/destination"
-        android:textAppearance="?android:attr/textAppearanceMedium"/>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/item_height"
-        android:orientation="horizontal"
-        android:weightSum="1">
-
-        <EditText
-            android:id="@+id/dest_lat_et"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.5"
-            android:ems="10"
-            android:hint="37.792695"
-            android:inputType="numberDecimal|numberSigned"/>
-
-        <EditText
-            android:id="@+id/dest_lng_et"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.5"
-            android:ems="10"
-            android:hint="-122.404436"
-            android:inputType="numberDecimal|numberSigned"/>
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/button_height"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:weightSum="1">
-
-        <Button
-            android:id="@+id/start_btn"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.5"
-            android:text="@string/start"/>
-
-        <Button
-            android:id="@+id/stop_btn"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.5"
-            android:text="@string/stop"/>
-    </LinearLayout>
-
-    <TextView
-        android:id="@+id/console_tv"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/label_height"
-        android:background="@color/grey100"
-        android:gravity="center_vertical"
-        android:text="@string/console"
-        android:textAppearance="?android:attr/textAppearanceMedium"/>
-
-    <EditText
-        android:id="@+id/console_et"
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
-        android:focusable="false"
-        android:gravity="top|left"
-        android:inputType="textMultiLine"
-        android:scrollbars="vertical"
-        android:textAppearance="?android:attr/textAppearanceSmall"/>
-
-</LinearLayout>
+</ScrollView>

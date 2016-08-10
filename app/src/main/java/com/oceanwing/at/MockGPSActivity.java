@@ -19,12 +19,15 @@ import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.oceanwing.at.ui.TextValidator;
+
 public class MockGPSActivity extends Activity implements View.OnClickListener, AdapterView.OnItemSelectedListener, RadioGroup.OnCheckedChangeListener {
 
-    private static final String TAG = "MockGPSActivity";
+    private static final String TAG = MockGPSActivity.class.getSimpleName();
 
     private Context mContext;
 
@@ -50,6 +53,8 @@ public class MockGPSActivity extends Activity implements View.OnClickListener, A
 
     private Button mStartBtn = null;
     private Button mStopBtn = null;
+    private Button mPauseBtn = null;
+    private Switch mGPSSwitch = null;
 
     private EditText mConsoleEditText = null;
 
@@ -132,6 +137,14 @@ public class MockGPSActivity extends Activity implements View.OnClickListener, A
         mStopBtn = (Button) findViewById(R.id.stop_btn);
         mStopBtn.setEnabled(false);
         mStopBtn.setOnClickListener(this);
+
+        mPauseBtn = (Button) findViewById(R.id.pause_btn);
+        mPauseBtn.setEnabled(false);
+        mPauseBtn.setOnClickListener(this);
+
+        mGPSSwitch = (Switch) findViewById(R.id.gps_switch);
+        mGPSSwitch.setEnabled(false);
+        mGPSSwitch.setOnClickListener(this);
 
         mConsoleEditText = (EditText) findViewById(R.id.console_et);
     }
@@ -280,6 +293,14 @@ public class MockGPSActivity extends Activity implements View.OnClickListener, A
                 MockGPSService.stop(mContext);
                 setMockingView(false);
                 break;
+            case R.id.pause_btn:
+                boolean paused = getString(R.string.pause).equals(mPauseBtn.getText().toString());
+                MockGPSService.setPaused(paused);
+                mPauseBtn.setText(paused ? getString(R.string.resume) : getString(R.string.pause));
+                break;
+            case R.id.gps_switch:
+                MockGPSService.setGPSEnabled(mGPSSwitch.isChecked());
+                break;
             default:
                 break;
         }
@@ -295,8 +316,13 @@ public class MockGPSActivity extends Activity implements View.OnClickListener, A
         mOriginLngEditText.setEnabled(!isMocking);
         mDestLatEditText.setEnabled(!isMocking);
         mDestLngEditText.setEnabled(!isMocking);
+
         mStartBtn.setEnabled(!isMocking);
         mStopBtn.setEnabled(isMocking);
+        mPauseBtn.setEnabled(isMocking);
+        mGPSSwitch.setEnabled(isMocking);
+        mPauseBtn.setText(MockGPSService.isPaused() ? getString(R.string.resume) : getString(R.string.pause));
+        mGPSSwitch.setChecked(MockGPSService.isGPSEnabled());
     }
 
     @Override
@@ -339,26 +365,17 @@ public class MockGPSActivity extends Activity implements View.OnClickListener, A
             int status = intent.getIntExtra(BroadcastNotifier.EXTENDED_DATA_STATUS, BroadcastNotifier.STATE_ACTION_ERROR);
             String log = intent.getStringExtra(BroadcastNotifier.EXTENDED_STATUS_LOG);
             mConsoleEditText.append(log + '\n');
-            setMockingView(true);
             switch (status) {
                 case BroadcastNotifier.STATE_ACTION_STARTED:
-                    Log.i(TAG, "State: STARTED");
-                    break;
                 case BroadcastNotifier.STATE_ACTION_CONNECTING:
-                    Log.i(TAG, "State: CONNECTING");
-                    break;
                 case BroadcastNotifier.STATE_ACTION_PARSING:
-                    Log.i(TAG, "State: PARSING");
-                    break;
                 case BroadcastNotifier.STATE_ACTION_MOCKING:
-                    Log.i(TAG, "State: MOCKING");
+                case BroadcastNotifier.STATE_ACTION_PAUSING:
+                case BroadcastNotifier.STATE_ACTION_NO_GPS:
+                    setMockingView(true);
                     break;
                 case BroadcastNotifier.STATE_ACTION_COMPLETE:
-                    Log.i(TAG, "State: COMPLETE");
-                    setMockingView(false);
-                    break;
                 case BroadcastNotifier.STATE_ACTION_ERROR:
-                    Log.i(TAG, "State: ERROR");
                 default:
                     setMockingView(false);
                     break;

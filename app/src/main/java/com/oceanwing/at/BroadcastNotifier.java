@@ -33,6 +33,8 @@ public class BroadcastNotifier {
     public static final int STATE_ACTION_PARSING = 2;
     public static final int STATE_ACTION_MOCKING = 3;
     public static final int STATE_ACTION_COMPLETE = 4;
+    public static final int STATE_ACTION_PAUSING = 5;
+    public static final int STATE_ACTION_NO_GPS = 6;
 
     private LocalBroadcastManager mBroadcaster;
 

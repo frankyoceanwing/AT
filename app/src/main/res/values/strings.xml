@@ -22,6 +22,9 @@
     <string name="scheme">mockgps</string>
     <string name="host">com.oceanwing.at</string>
     <string name="path" formatted="false">/path</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
+    <string name="gps">GPS</string>
 
     <string-array name="apis">
         <item>@string/api_here</item>

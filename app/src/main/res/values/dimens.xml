@@ -5,7 +5,7 @@
     <dimen name="label_width">80dp</dimen>
     <dimen name="label_padding">4dp</dimen>
     <dimen name="label_margin">10dp</dimen>
-    <dimen name="label_height">56dp</dimen>
+    <dimen name="label_height">36dp</dimen>
     <dimen name="button_height">72dp</dimen>
     <dimen name="item_height">48dp</dimen>
 </resources>

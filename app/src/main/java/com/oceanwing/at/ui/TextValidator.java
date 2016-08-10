@@ -1,4 +1,4 @@
-package com.oceanwing.at;
+package com.oceanwing.at.ui;
 
 import android.text.Editable;
 import android.text.TextWatcher;
