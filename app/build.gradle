@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'android-apt'
 
 android {
     compileSdkVersion 24
@@ -27,7 +28,7 @@ android {
                     def date = new Date();
                     def formattedDate = date.format('yyyyMMddHHmmss')
                     def appName = output.outputFile.name
-                    appName = appName.replace("app-release", "AT-release-"+ formattedDate)
+                    appName = appName.replace("app-release", "AT-release-" + formattedDate)
                     output.outputFile = new File(output.outputFile.parent, appName)
                 }
             }
@@ -38,5 +39,19 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     testCompile 'junit:junit:4.12'
+    compile 'com.android.support:design:24.0.0'
     compile 'com.android.support:appcompat-v7:24.0.0'
+    compile 'com.android.support:cardview-v7:24.0.0'
+    compile 'com.android.support:recyclerview-v7:24.0.0'
+
+    compile 'com.jakewharton:butterknife:8.2.1'
+    apt 'com.jakewharton:butterknife-compiler:8.2.1'
+
+    compile 'com.squareup.retrofit2:retrofit:2.1.0'
+    compile 'com.squareup.retrofit2:converter-gson:2.1.0'
+    compile 'org.apache.commons:commons-lang3:3.4'
+
+    compile 'com.mobsandgeeks:android-saripaar:2.0.3'
+    compile 'com.github.baoyachi:StepView:1.8.1'
+    compile 'com.getbase:floatingactionbutton:1.10.1'
 }

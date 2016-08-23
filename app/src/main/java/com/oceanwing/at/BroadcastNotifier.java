@@ -24,7 +24,8 @@ public class BroadcastNotifier {
 
     public static final String BROADCAST_ACTION = "com.oceanwing.at.action.BROADCAST";
     public static final String EXTENDED_DATA_STATUS = "com.oceanwing.at.data.STATUS";
-    public static final String EXTENDED_STATUS_LOG = "com.oceanwing.at.data.LOG";
+    public static final String EXTENDED_DATA_LOG = "com.oceanwing.at.data.LOG";
+    public static final String EXTENDED_DATA_STEP = "com.oceanwing.at.data.STEP";
 
 
     public static final int STATE_ACTION_ERROR = -1;
@@ -42,19 +43,19 @@ public class BroadcastNotifier {
         mBroadcaster = LocalBroadcastManager.getInstance(context);
     }
 
-    public void broadcast(int status, String log) {
+    public void broadcast(int status, int step, String log) {
         Intent localIntent = new Intent();
-
         // The Intent contains the custom broadcast action for this app
         localIntent.setAction(BROADCAST_ACTION);
-
         localIntent.putExtra(EXTENDED_DATA_STATUS, status);
-
-        // Puts log data into the Intent
-        localIntent.putExtra(EXTENDED_STATUS_LOG, log);
+        localIntent.putExtra(EXTENDED_DATA_STEP, step);
+        localIntent.putExtra(EXTENDED_DATA_LOG, log);
         localIntent.addCategory(Intent.CATEGORY_DEFAULT);
-
         // Broadcasts the Intent
         mBroadcaster.sendBroadcast(localIntent);
+    }
+
+    public void broadcast(int status, String log) {
+        broadcast(status, -1, log);
     }
 }

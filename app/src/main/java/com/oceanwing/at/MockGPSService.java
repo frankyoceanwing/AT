@@ -5,63 +5,56 @@ import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
-import android.net.Uri;
 import android.os.SystemClock;
 import android.support.v4.app.NotificationCompat;
-import android.text.TextUtils;
 import android.util.Log;
 
 import com.oceanwing.at.model.LatLng;
-import com.oceanwing.at.util.CSVUtils;
-import com.oceanwing.at.util.DateTimeUtils;
-import com.oceanwing.at.util.StorageUtils;
+import com.oceanwing.at.model.Position;
+import com.oceanwing.at.model.RoutingConfig;
+import com.oceanwing.at.model.RunnerConfig;
+import com.oceanwing.at.model.Task;
+import com.oceanwing.at.model.Waypoint;
+import com.oceanwing.at.routing.google.DestinationsRequest;
+import com.oceanwing.at.routing.google.DestinationsResponse;
+import com.oceanwing.at.routing.google.GoogleMapAPI;
+import com.oceanwing.at.routing.here.HereMapAPI;
+import com.oceanwing.at.routing.here.Route;
+import com.oceanwing.at.routing.here.RouteAttributes;
+import com.oceanwing.at.routing.here.RoutingRequest;
+import com.oceanwing.at.routing.here.RoutingResponse;
+import com.oceanwing.at.routing.here.Waypoints;
+import com.oceanwing.at.util.MetaDataUtil;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.apache.commons.lang3.StringUtils;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InvalidObjectException;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Response;
 
 public class MockGPSService extends IntentService {
 
     private static final String TAG = MockGPSService.class.getSimpleName();
 
+    private static MockGPSService sContext;
+
     // Defines and instantiates an object for handling status updates.
-    private BroadcastNotifier mBroadcaster = new BroadcastNotifier(this);
+    private BroadcastNotifier mBroadcaster;
 
     private static final int ONGOING_NOTIFICATION_ID = 1;
 
     public static final String ACTION_START = "com.oceanwing.at.action.START";
     public static final String ACTION_STOP = "com.oceanwing.at.action.STOP";
-    public static final String ACTION_PAUSE = "com.oceanwing.at.action.PAUSE";
-    public static final String ACTION_RESUME = "com.oceanwing.at.action.RESUME";
-    public static final String ACTION_ENABLE_GPS = "com.oceanwing.at.action.ENABLE_GPS";
-    public static final String ACTION_DISABLE_GPS = "com.oceanwing.at.action.DISABLE_GPS";
 
-    public static final String API = "com.oceanwing.at.extra.api";
-    public static final String RUN = "com.oceanwing.at.extra.run";
-    public static final String SPEED = "com.oceanwing.at.extra.speed";
-    public static final String ORIGIN_LAT = "com.oceanwing.at.extra.origin.lat";
-    public static final String ORIGIN_LNG = "com.oceanwing.at.extra.origin.lng";
-    public static final String DEST_LAT = "com.oceanwing.at.extra.dest.lat";
-    public static final String DEST_LNG = "com.oceanwing.at.extra.dest.lng";
-
+    private static final String HERE_MAP_ROUTING_API_VERSION = "HERE_MAP_ROUTING_API_VERSION";
     private static final String HERE_MAP_APP_ID = "HERE_MAP_APP_ID";
     private static final String HERE_MAP_APP_CODE = "HERE_MAP_APP_CODE";
     private static final String GOOGLE_MAP_API_KEY = "GOOGLE_MAP_API_KEY";
@@ -69,13 +62,13 @@ public class MockGPSService extends IntentService {
     private static final String mMockProviderName = LocationManager.GPS_PROVIDER; // 模拟GPS
     private static LocationManager mLocationManager;
 
-    private static boolean isPaused;
-
-    private double mOriginLat, mOriginLng, mDestLat, mDestLng;
-    private float mSpeed;
+    private static boolean sIsPaused;
+    private static boolean sIsStopped;
 
     private Location mCurrentLocation = null;
     private Location mLastLocation = null;
+
+    private static Task sTask;
 
     public MockGPSService() {
         super("MockGPSService");
@@ -83,24 +76,45 @@ public class MockGPSService extends IntentService {
 
     @Override
     public void onCreate() {
+        Log.i(TAG, "onCreate");
         super.onCreate();
+        sContext = this;
+
         foreground();
+
+        mBroadcaster = new BroadcastNotifier(this);
 
         mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         addTestProvider(mMockProviderName);
         setTestProviderEnabled(mMockProviderName, true);
     }
 
+    @Override
+    public void onDestroy() {
+        Log.i(TAG, "onDestroy");
+        if (!sIsStopped) {
+            stop(sContext);
+        }
+        super.onDestroy();
+        sContext = null;
+    }
+
+    public static boolean isCreated() {
+        return sContext != null;
+    }
+
     private void foreground() {
-        Log.e(TAG, "foreground");
-        Intent notificationIntent = new Intent(this, MockGPSActivity.class);
+        Intent notificationIntent = new Intent(this, RunnerActivity.class);
+        if (sTask != null) {
+            notificationIntent.putExtra(Task.EXTRA_TASK_NAME, sTask.getName());
+        }
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         Notification notification = new NotificationCompat.Builder(this)
                 .setContentTitle(getString(R.string.app_name))
                 .setTicker(getString(R.string.app_name))
                 .setContentText("Mocking")
-                .setSmallIcon(R.drawable.ic_launcher_24)
-                .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher_48))
+                .setSmallIcon(R.drawable.ic_gps_fixed_white_24dp)
+                .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.ic_gps_fixed_white_48dp))
                 .setContentIntent(pendingIntent)
                 .setOngoing(true).build();
         startForeground(ONGOING_NOTIFICATION_ID, notification);
@@ -109,62 +123,87 @@ public class MockGPSService extends IntentService {
     private void addTestProvider(String mockProviderName) {
         switch (mockProviderName) {
             case LocationManager.GPS_PROVIDER:
-                mLocationManager.addTestProvider(mMockProviderName,
-                        "requiresNetwork" == "", "requiresSatellite" == "requiresSatellite",
-                        "requiresCell" == "", "hasMonetaryCost" == "",
-                        "supportsAltitude" == "", "supportsSpeed" == "supportsSpeed",
-                        "supportsBearing" == "supportsBearing",
-                        Criteria.POWER_LOW,
-                        Criteria.ACCURACY_FINE);
+                if (mLocationManager != null) {
+                    mLocationManager.addTestProvider(mMockProviderName,
+                            "requiresNetwork" == "", "requiresSatellite" == "requiresSatellite",
+                            "requiresCell" == "", "hasMonetaryCost" == "",
+                            "supportsAltitude" == "", "supportsSpeed" == "supportsSpeed",
+                            "supportsBearing" == "supportsBearing",
+                            Criteria.POWER_LOW,
+                            Criteria.ACCURACY_FINE);
+                }
                 break;
         }
     }
 
     private static void setTestProviderEnabled(String mockProviderName, boolean enabled) {
         if (mLocationManager != null) {
-            mLocationManager.setTestProviderEnabled(mockProviderName, enabled);
+            try {
+                mLocationManager.setTestProviderEnabled(mockProviderName, enabled);
+            } catch (IllegalArgumentException e) {
+                Log.e(TAG, e.getMessage(), e);
+            }
         }
     }
 
     private static void removeTestProvider(String mockProviderName) {
         if (mLocationManager != null) {
-            mLocationManager.removeTestProvider(mockProviderName);
+            try {
+                mLocationManager.removeTestProvider(mockProviderName);
+            } catch (IllegalArgumentException e) {
+                Log.e(TAG, e.getMessage(), e);
+            }
         }
     }
 
     private static boolean isTestProviderEnabled(String mockProviderName) {
         if (mLocationManager != null) {
-            return mLocationManager.isProviderEnabled(mockProviderName);
+            try {
+                return mLocationManager.isProviderEnabled(mockProviderName);
+            } catch (IllegalArgumentException e) {
+                Log.e(TAG, e.getMessage(), e);
+            }
         }
         return false;
     }
 
-    public static void start(Context context, String api, String run, double originLat, double originLng, double destLat, double destLng, float speed) {
-        Intent intent = new Intent(context, MockGPSService.class);
-        intent.setAction(ACTION_START);
-        intent.putExtra(API, api);
-        intent.putExtra(RUN, run);
-        intent.putExtra(ORIGIN_LAT, originLat);
-        intent.putExtra(ORIGIN_LNG, originLng);
-        intent.putExtra(DEST_LAT, destLat);
-        intent.putExtra(DEST_LNG, destLng);
-        intent.putExtra(SPEED, speed);
-        context.startService(intent);
+    public static void start(Context context, Task task) {
+        Log.i(TAG, "start");
+        if (task != null) {
+            sTask = task;
+            Intent intent = new Intent(context, MockGPSService.class);
+            intent.setAction(ACTION_START);
+            intent.putExtra(Task.EXTRA_TASK, sTask);
+            context.startService(intent);
+        }
+    }
+
+    public static void start(Context context, String taskName) {
+        Log.i(TAG, "start");
+        try {
+            Task task = TaskFile.getTask(sContext, taskName);
+            start(context, task);
+        } catch (IOException e) {
+            Log.e(TAG, e.getMessage(), e);
+        }
     }
 
     public static void stop(Context context) {
+        sTask = null;
+        Log.i(TAG, "stop");
         removeTestProvider(mMockProviderName);
         Intent intent = new Intent(context, MockGPSService.class);
         intent.setAction(ACTION_STOP);
         context.stopService(intent);
+        sIsStopped = true;
     }
 
     public static boolean isPaused() {
-        return isPaused;
+        return sIsPaused;
     }
 
     public static void setPaused(boolean paused) {
-        isPaused = paused;
+        sIsPaused = paused;
     }
 
     public static boolean isGPSEnabled() {
@@ -177,306 +216,197 @@ public class MockGPSService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
+        Log.i(TAG, "onHandleIntent");
         if (intent != null) {
             final String action = intent.getAction();
             switch (action) {
                 case ACTION_START:
-                    final String api = intent.getStringExtra(API);
-                    final String run = intent.getStringExtra(RUN);
-                    final float speed = kmh2mps(intent.getFloatExtra(SPEED, 0F));
-                    final double originLat = intent.getDoubleExtra(ORIGIN_LAT, 0D);
-                    final double originLng = intent.getDoubleExtra(ORIGIN_LNG, 0D);
-                    final double destLat = intent.getDoubleExtra(DEST_LAT, 0D);
-                    final double destLng = intent.getDoubleExtra(DEST_LNG, 0D);
-                    handleActionStart(api, run, originLat, originLng, destLat, destLng, speed);
+                    if (intent.hasExtra(Task.EXTRA_TASK)) {
+                        handleActionStart((Task) intent.getParcelableExtra(Task.EXTRA_TASK));
+                    } else if (intent.hasExtra(Task.EXTRA_TASK_NAME) && StringUtils.isNotBlank(intent.getStringExtra(Task.EXTRA_TASK_NAME))) {
+                        try {
+                            Task task = TaskFile.getTask(sContext, intent.getStringExtra(Task.EXTRA_TASK_NAME));
+                            if (task != null) {
+                                handleActionStart(task);
+                            }
+                        } catch (IOException e) {
+                            Log.e(TAG, e.getMessage(), e);
+                        }
+                    }
                     break;
             }
         }
     }
 
-    private void handleActionStart(String api, String run, double originLat, double originLng, double destLat, double destLng, float speed) {
-        mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_STARTED, "started");
-        Log.i(TAG, String.format("API[%s] run %s (%.6f, %.6f) -> (%.6f, %.6f) at %.2f MPS", api, run, originLat, originLng, destLat, destLng, speed));
+    private void handleActionStart(Task task) {
+        sIsStopped = false;
 
-        mOriginLat = originLat;
-        mOriginLng = originLng;
-        mDestLat = destLat;
-        mDestLng = destLng;
-        mSpeed = speed;
+        mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_STARTED, "== start ==");
 
-        List<LatLng> points = calcRoute(api, originLat, originLng, destLat, destLng);
-        points = optimizePoints(points, speed);
+        RoutingConfig routingConfig = task.getRoutingConfig();
+        List<Waypoint> waypoints = routingConfig.getWaypoints();
+        Waypoint origin = waypoints.get(0);
+        Waypoint dest = waypoints.get(1);
+
+        RunnerConfig runnerConfig = task.getRunnerConfig();
+        List<Position> positions = runnerConfig.getPositions();
+
+        Log.i(TAG, String.format("api[%s] (%.6f, %.6f) -> (%.6f, %.6f) run %s at %.2f KPH",
+                routingConfig.getAPI(),
+                origin.getLatLng().getLat(), origin.getLatLng().getLng(),
+                dest.getLatLng().getLat(), dest.getLatLng().getLng(),
+                runnerConfig.getRun(), runnerConfig.getSpeed()));
 
         try {
-            savePoints(points);
+            if (runnerConfig.isOnline() || positions.isEmpty()) {
+                positions = calcRoute(routingConfig);
 
-            LatLng current, next = null;
+                positions = optimizePositions(routingConfig, runnerConfig, positions);
+                runnerConfig.setPositions(positions);
+                task.setRunnerConfig(runnerConfig);
+                TaskFile.saveTask(sContext, task);
+            }
+
+            Position current, next = null;
             String log;
             int state = BroadcastNotifier.STATE_ACTION_ERROR;
             float bearing;
-            double distance;
-            do {
-                for (int i = 0; i < points.size() - 1; ) {
+            double distance = 0;
+
+            long run;
+            switch (runnerConfig.getRun()) {
+                case RunnerConfig.RUN_ONCE:
+                    run = 1;
+                    break;
+                case RunnerConfig.RUN_FOREVER:
+                    run = Long.MAX_VALUE;
+                    break;
+                default:
+                    run = Long.valueOf(runnerConfig.getRun());
+                    break;
+            }
+
+            for (int n = 0; n < run; n++) {
+                for (int i = 0; i < positions.size() - 1; ) {
                     if (isTestProviderEnabled(mMockProviderName)) {
-                        current = points.get(i);
-                        next = points.get(i + 1);
-                        bearing = current.bearingTo(next);
-                        distance = current.distanceTo(next);
+                        current = positions.get(i);
+                        next = positions.get(i + 1);
+                        bearing = current.getLatLng().bearingTo(next.getLatLng());
+                        distance = current.getLatLng().distanceTo(next.getLatLng());
 
-                        setLocation(mMockProviderName, current.getLat(), current.getLng(), bearing, speed);
+                        setLocation(mMockProviderName,
+                                current.getLatLng().getLat(), current.getLatLng().getLng(),
+                                bearing, kph2mps(runnerConfig.getSpeed()));
 
-                        log = String.format("[%d/%d] (%.6f, %.6f) -> (%.6f, %.6f), bearing=%.0f, distance=%.3fkm",
-                                (i + 1), points.size(),
-                                current.getLat(), current.getLng(),
-                                next.getLat(), next.getLng(),
-                                bearing, distance, speed);
+                        log = String.format("== mocking == [%5d / %5d] (%.6f, %.6f) -> (%.6f, %.6f), bearing = %.0f, distance = %.3f KM",
+                                (i + 1), positions.size(),
+                                current.getLatLng().getLat(), current.getLatLng().getLng(),
+                                next.getLatLng().getLat(), next.getLatLng().getLng(),
+                                bearing, distance);
                         state = BroadcastNotifier.STATE_ACTION_MOCKING;
                     } else {
-                        log = "no GPS";
+                        log = "== no GPS ==";
                         state = BroadcastNotifier.STATE_ACTION_NO_GPS;
                     }
 
-                    if (isPaused) {
-                        log = "pausing";
+                    if (sIsPaused) {
+                        log = "== pausing ==";
                         state = BroadcastNotifier.STATE_ACTION_PAUSING;
                     } else {
                         i++; // 往下走
                     }
 
                     Log.i(TAG, log);
-                    mBroadcaster.broadcast(state, log);
+                    mBroadcaster.broadcast(state, (i + 1), log);
 
-                    //long t = (long) (distance / speed * 1000 * 1000); // m -> km, ms ->s
-                    //Log.i(TAG, String.format("wait=%dms", t));
-                    Thread.sleep(1000);
+                    long wait = runnerConfig.getUpdateInterval() * 1000;
+                    double stepDistance = runnerConfig.getUpdateInterval() * runnerConfig.getSpeed() / 3600D; // 单位距离(1s 走的距离 km)
+                    if (runnerConfig.isSteady()) {
+                        wait = (long) (distance / stepDistance * wait);
+                        Log.i(TAG, String.format("wait=%dms", wait));
+                    }
+                    Thread.sleep(wait);
                 }
                 if (next != null) {
-                    log = String.format("destination(%.6f, %.6f)", next.getLat(), next.getLng());
+                    log = String.format("offset(%.6f, %.6f)", next.getLatLng().getLat(), next.getLatLng().getLng());
                     Log.i(TAG, log);
-                    setLocation(mMockProviderName, next.getLat(), next.getLng(), 0, 0);
-                    mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_MOCKING, log);
+                    setLocation(mMockProviderName, next.getLatLng().getLat(), next.getLatLng().getLng(), 0, 0);
+                    mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_MOCKING, positions.size(), log);
                 }
-            } while (getString(R.string.run_forever).equals(run));
+            }
         } catch (IOException e) {
             Log.e(TAG, "failed to save points", e);
         } catch (IllegalArgumentException e) {
             Log.e(TAG, "failed to set location", e);
         } catch (InterruptedException e) {
             Log.e(TAG, "failed to sleep", e);
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.e(TAG, "failed to read meta data", e);
         } finally {
-            mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_COMPLETE, "complete");
+            mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_COMPLETE, "== complete ==");
         }
     }
 
-    private void savePoints(List<LatLng> points) throws IOException {
-        if (StorageUtils.isExternalWritable()) {
-            try (FileOutputStream os = new FileOutputStream(getPointsFile())) {
-                CSVUtils.write(os, toCSVData(points));
-                Log.i(TAG, "points saved");
-            }
+
+    private List<Position> calcRoute(RoutingConfig routingConfig) throws IOException, PackageManager.NameNotFoundException {
+        List<Position> positions = new ArrayList<>();
+        List<Waypoint> waypoints = routingConfig.getWaypoints();
+        Waypoint origin = waypoints.get(0);
+        Waypoint dest = waypoints.get(1);
+
+        switch (routingConfig.getAPI()) {
+            case HERE:
+                Waypoints wps = new Waypoints(
+                        new com.oceanwing.at.routing.here.Position(origin.getLatLng().getLat(), origin.getLatLng().getLng()),
+                        new com.oceanwing.at.routing.here.Position(dest.getLatLng().getLat(), dest.getLatLng().getLng()));
+                final String APP_ID = MetaDataUtil.read(sContext, HERE_MAP_APP_ID);
+                final String APP_CODE = MetaDataUtil.read(sContext, HERE_MAP_APP_CODE);
+                final String API_VERSION = MetaDataUtil.read(sContext, HERE_MAP_ROUTING_API_VERSION);
+                RoutingRequest hereRequest = new RoutingRequest(APP_ID, APP_CODE, wps, routingConfig.parseHereRoutingMode());
+                RouteAttributes routeAttributes = new RouteAttributes(RoutingRequest.RouteAttribute.SHAPE);
+                hereRequest.setRouteAttributes(routeAttributes);
+                Call<RoutingResponse> routingCall = HereMapAPI.getInstance().routing().calculateRoute(API_VERSION, hereRequest.toMap());
+                Response<RoutingResponse> hereResp = routingCall.execute();
+                if (hereResp.isSuccessful()) {
+                    Log.i(TAG, "here routing successfully");
+                    com.oceanwing.at.routing.here.Response response = hereResp.body().getResponse();
+                    List<Route> routes = response.getRoute();
+                    if (routes != null && !routes.isEmpty()) {
+                        Route route = routes.get(0);
+                        positions = route.parsePosition();
+                    }
+                } else {
+                    Log.e(TAG, "here routing failed: " + hereResp.errorBody().string());
+                    mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_ERROR, ">> routing failed <<\n" + hereResp.errorBody().string());
+                }
+                break;
+            case GOOGLE:
+                final String API_KEY = MetaDataUtil.read(sContext, GOOGLE_MAP_API_KEY);
+                DestinationsRequest googleRequest = new DestinationsRequest(API_KEY,
+                        new com.oceanwing.at.routing.google.LatLng(origin.getLatLng().getLat(), origin.getLatLng().getLng()),
+                        new com.oceanwing.at.routing.google.LatLng(dest.getLatLng().getLat(), dest.getLatLng().getLng()));
+                Call<DestinationsResponse> call = GoogleMapAPI.getInstance().destinations().getDestinations(googleRequest.toMap());
+                Response<DestinationsResponse> googleResp = call.execute();
+                if (googleResp.isSuccessful()) {
+                    Log.i(TAG, "google routing successfully");
+                    List<com.oceanwing.at.routing.google.Route> routes = googleResp.body().getRoutes();
+                    if (routes != null && !routes.isEmpty()) {
+                        com.oceanwing.at.routing.google.Route route = routes.get(0);
+                        positions = route.parsePosition();
+                    }
+                } else {
+                    Log.e(TAG, "google routing failed: " + googleResp.errorBody().string());
+                    mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_ERROR, ">> routing failed <<\n" + googleResp.errorBody().string());
+                }
+                break;
         }
+        return positions;
     }
 
-    private List<String[]> toCSVData(List<LatLng> points) {
-        List<String[]> rows = new ArrayList<>();
-        for (LatLng p : points) {
-            String[] row = new String[2];
-            row[0] = String.valueOf(p.getLng());
-            row[1] = String.valueOf(p.getLng());
-            rows.add(row);
-        }
-        return rows;
-    }
-
-    private File getPointsFile() {
-        return new File(StorageUtils.getExternalAppFilesDir(getApplicationContext())
-                + File.separator
-                + DateTimeUtils.getCurrentTimeInString(new SimpleDateFormat("yyyyMMddHHmmss"))
-                + ".csv");
-    }
-
-    private float kmh2mps(float speed) {
+    private float kph2mps(float speed) {
         return speed * 1000 / 3600; // km/h -> m/s
     }
 
-    private List<LatLng> calcRoute(String api, double originLat, double originLng, double destLat, double destLng) {
-        if (getString(R.string.api_here).equals(api)) {
-            return calcRouteByHere(originLat, originLng, destLat, destLng);
-        }
-        return calcRouteByGoogle(originLat, originLng, destLat, destLng);
-    }
-
-
-    private List<LatLng> calcRouteByHere(double originLat, double originLng, double destLat, double destLng) {
-        List<LatLng> points = new ArrayList<>();
-        try {
-            String url = Uri.parse("https://route.cit.api.here.com/routing/7.2/calculateroute.json")
-                    .buildUpon()
-                    .appendQueryParameter("app_id", readMetaDataFromApplication(HERE_MAP_APP_ID))
-                    .appendQueryParameter("app_code", readMetaDataFromApplication(HERE_MAP_APP_CODE))
-                    .appendQueryParameter("waypoint0", String.format("geo!%.6f,%.6f", originLat, originLng))
-                    .appendQueryParameter("waypoint1", String.format("geo!%.6f,%.6f", destLat, destLng))
-                    .appendQueryParameter("routeattributes", "sh")
-                    .appendQueryParameter("mode", "fastest;car;traffic:disabled")
-                    .build().toString();
-            String jsonString = getUrlString(url);
-            Log.i(TAG, "received JSON: " + jsonString);
-            JSONObject jsonBody = new JSONObject(jsonString);
-            points = parseHereResponse(jsonBody);
-        } catch (PackageManager.NameNotFoundException e) {
-            mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_ERROR, "API key not found: " + e.getMessage());
-            Log.e(TAG, "failed to calculate route", e);
-        } catch (JSONException je) {
-            mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_ERROR, "failed to parse JSON");
-            Log.e(TAG, "failed to parse JSON", je);
-        } catch (IOException ioe) {
-            mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_ERROR, "failed to calculate route");
-            Log.e(TAG, "failed to calculate route", ioe);
-        }
-        return points;
-    }
-
-    private List<LatLng> calcRouteByGoogle(double originLat, double originLng, double destLat, double destLng) {
-        List<LatLng> points = new ArrayList<>();
-        try {
-            String url = Uri.parse("https://maps.googleapis.com/maps/api/directions/json")
-                    .buildUpon()
-                    .appendQueryParameter("key", readMetaDataFromApplication(GOOGLE_MAP_API_KEY))
-                    .appendQueryParameter("origin", String.format("%.6f,%.6f", originLat, originLng))
-                    .appendQueryParameter("destination", String.format("%.6f,%.6f", destLat, destLng))
-                    .appendQueryParameter("units", "metric")
-                    .appendQueryParameter("mode", "driving")
-                    .build().toString();
-            String jsonString = getUrlString(url);
-            Log.i(TAG, "received JSON: " + jsonString);
-            JSONObject jsonBody = new JSONObject(jsonString);
-            points = parseGoogleResponse(jsonBody);
-        } catch (PackageManager.NameNotFoundException e) {
-            mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_ERROR, "API key not found: " + e.getMessage());
-            Log.e(TAG, "failed to calculate route", e);
-        } catch (JSONException je) {
-            mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_ERROR, "failed to parse JSON");
-            Log.e(TAG, "failed to parse JSON", je);
-        } catch (IOException ioe) {
-            mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_ERROR, "failed to calculate route");
-            Log.e(TAG, "failed to calculate route", ioe);
-        }
-        return points;
-    }
-
-    private List<LatLng> parseHereResponse(JSONObject jsonBody) throws IOException, JSONException {
-        mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_PARSING, "parsing");
-
-        JSONObject respJsonObject = jsonBody.getJSONObject("response");
-        JSONArray routesJsonArray = respJsonObject.getJSONArray("route");
-        JSONObject routeJsonObject = routesJsonArray.getJSONObject(0);
-        JSONArray shapeJsonArray = routeJsonObject.getJSONArray("shape");
-        List<LatLng> points = new ArrayList<>();
-        for (int i = 0; i < shapeJsonArray.length(); i++) {
-            points.add(parseShape(shapeJsonArray.getString(i)));
-        }
-        return points;
-    }
-
-    private LatLng parseShape(String shape) {
-        String[] s = TextUtils.split(shape, ",");
-        return new LatLng(Double.valueOf(s[0]).doubleValue(), Double.valueOf(s[1]).doubleValue());
-    }
-
-    private List<LatLng> parseGoogleResponse(JSONObject jsonBody) throws IOException, JSONException {
-        mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_PARSING, "parsing");
-
-        JSONArray routesJsonArray = jsonBody.getJSONArray("routes");
-        if (routesJsonArray.length() == 0) {
-            throw new InvalidObjectException("ZERO_RESULTS");
-        }
-        JSONObject routeJsonObject = routesJsonArray.getJSONObject(0);
-        JSONArray legsJsonArray = routeJsonObject.getJSONArray("legs");
-        JSONObject legJsonObject = legsJsonArray.getJSONObject(0);
-        JSONArray stepJsonArray = legJsonObject.getJSONArray("steps");
-        List<LatLng> points = new ArrayList<>();
-        for (int i = 0; i < stepJsonArray.length(); i++) {
-            List<LatLng> stepPoints = parseStep(stepJsonArray.getJSONObject(i));
-            if (i == stepJsonArray.length() - 1) { // 最后一段
-                points.addAll(stepPoints);
-            } else {
-                for (int j = 0; j < stepPoints.size() - 1; j++) { // 不要最后1个点, 因为下一段的起点就是当前段的终点
-                    points.add(stepPoints.get(j));
-                }
-            }
-        }
-        return points;
-    }
-
-    private List<LatLng> parseStep(JSONObject step) throws JSONException {
-        JSONObject polylineJsonObject = step.getJSONObject("polyline");
-        String encodedPolyline = polylineJsonObject.getString("points");
-        return decodePolyline(encodedPolyline);
-    }
-
-    // copy from https://github.com/googlemaps/android-maps-utils/blob/master/library/src/com/google/maps/android/PolyUtil.java
-    private List<LatLng> decodePolyline(final String encodedPath) {
-        int len = encodedPath.length();
-
-        // For speed we preallocate to an upper bound on the final length, then
-        // truncate the array before returning.
-        final List<LatLng> path = new ArrayList<>();
-        int index = 0;
-        int lat = 0;
-        int lng = 0;
-
-        while (index < len) {
-            int result = 1;
-            int shift = 0;
-            int b;
-            do {
-                b = encodedPath.charAt(index++) - 63 - 1;
-                result += b << shift;
-                shift += 5;
-            } while (b >= 0x1f);
-            lat += (result & 1) != 0 ? ~(result >> 1) : (result >> 1);
-
-            result = 1;
-            shift = 0;
-            do {
-                b = encodedPath.charAt(index++) - 63 - 1;
-                result += b << shift;
-                shift += 5;
-            } while (b >= 0x1f);
-            lng += (result & 1) != 0 ? ~(result >> 1) : (result >> 1);
-
-            path.add(new LatLng(lat * 1e-5, lng * 1e-5));
-        }
-
-        return path;
-    }
-
-    private byte[] getUrlBytes(String urlSpec) throws IOException {
-        URL url = new URL(urlSpec);
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        try {
-            mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_CONNECTING, "connecting");
-
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            InputStream in = connection.getInputStream();
-            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-                throw new IOException(connection.getResponseMessage() + ": with " + urlSpec);
-            }
-            int bytesRead = 0;
-            byte[] buffer = new byte[1024];
-            while ((bytesRead = in.read(buffer)) > 0) {
-                out.write(buffer, 0, bytesRead);
-            }
-            out.close();
-            return out.toByteArray();
-        } finally {
-            connection.disconnect();
-        }
-    }
-
-    private String getUrlString(String urlSpec) throws IOException {
-        return new String(getUrlBytes(urlSpec));
-    }
 
     private void setLocation(String mockProviderName, double latitude, double longitude, float bearing, float speed) {
         Location loc = new Location(mockProviderName);
@@ -502,43 +432,37 @@ public class MockGPSService extends IntentService {
         Log.d(TAG, String.format("lat=%.6f, lng=%.6f, bearing=%.0f, speed=%.2fm/s", latitude, longitude, loc.getBearing(), speed));
     }
 
-    private List<LatLng> optimizePoints(List<LatLng> points, float speed) {
-        double step = (1 * speed) / 1000; // 单位距离(1s 走的距离 km)
-        List<LatLng> newPoints = new ArrayList<>();
-        LatLng current, next = null;
+    private List<Position> optimizePositions(RoutingConfig routingConfig, RunnerConfig runnerConfig, List<Position> positions) {
+        double step = runnerConfig.getUpdateInterval() * runnerConfig.getSpeed() / 3600D; // 单位距离(1s 走的距离 km)
+        List<Position> newPositions = new ArrayList<>();
+        Position current, next = null;
         double distance;
         float bearing;
-        for (int i = 0; i < points.size() - 1; i++) {
-            current = points.get(i);
-            newPoints.add(current);
+        for (int i = 0; i < positions.size() - 1; i++) {
+            current = positions.get(i);
+            newPositions.add(current);
 
-            next = points.get(i + 1);
-            distance = current.distanceTo(next);
+            next = positions.get(i + 1);
+            distance = current.getLatLng().distanceTo(next.getLatLng());
 
             // 如果当前点和下一个点的距离 大于 单位距离(1s 走的距离)
             // 则沿着前进方向, 分解成 n 个单位距离以内的点
             if (distance > step) {
-                bearing = current.bearingTo(next);
+                bearing = current.getLatLng().bearingTo(next.getLatLng());
                 int n = (int) (distance / step);
-                LatLng start = current;
+                Position start = current;
                 for (int j = 0; j < n; j++) {
-                    LatLng tmp = start.destinationPoint(step, bearing);
-                    Log.d(TAG, String.format("destinationPoint(%d-%d): lat=%.6f, lng=%.6f", i, j, tmp.getLat(), tmp.getLng()));
-                    newPoints.add(tmp);
+                    Position tmp = new Position(start.getLatLng().offset(step, bearing));
+                    Log.d(TAG, String.format("offset(%d-%d): lat=%.6f, lng=%.6f", i, j,
+                            tmp.getLatLng().getLat(), tmp.getLatLng().getLng()));
+                    newPositions.add(tmp);
                     start = tmp;
                 }
             }
         }
         if (next != null) {
-            newPoints.add(next);
+            newPositions.add(next);
         }
-        return newPoints;
-    }
-
-    private String readMetaDataFromApplication(String name) throws PackageManager.NameNotFoundException {
-        ApplicationInfo appInfo = this.getPackageManager()
-                .getApplicationInfo(getPackageName(),
-                        PackageManager.GET_META_DATA);
-        return appInfo.metaData.getString(name);
+        return newPositions;
     }
 }

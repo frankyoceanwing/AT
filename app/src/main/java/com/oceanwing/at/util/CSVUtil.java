@@ -1,6 +1,5 @@
 package com.oceanwing.at.util;
 
-import android.content.res.AssetManager;
 import android.text.TextUtils;
 
 import java.io.BufferedReader;
@@ -13,12 +12,12 @@ import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by franky on 16/8/10.
- */
-public class CSVUtils {
+public class CSVUtil {
 
     private static final String _SEPARATOR = ",";
+
+    private CSVUtil() {
+    }
 
     public static void write(OutputStream os, List<String[]> rows) throws IOException {
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os));

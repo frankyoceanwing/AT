@@ -3,21 +3,24 @@ package com.oceanwing.at.model;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-/**
- * Created by franky on 16/7/25.
- */
+import com.google.gson.annotations.Expose;
+import com.google.gson.annotations.SerializedName;
+import com.oceanwing.at.util.LatLngUtil;
+
+import java.util.Objects;
+
 public class LatLng implements Parcelable {
 
-    private double lat;
-    private double lng;
-
-    // the Earth's radius is about 6,371km
-    private double earthRadius = 6371.0;
-
+    @SerializedName("lat")
+    @Expose
+    private double mLat;
+    @SerializedName("lng")
+    @Expose
+    private double mLng;
 
     public LatLng(double lat, double lng) {
-        this.lat = lat;
-        this.lng = lng;
+        this.mLat = lat;
+        this.mLng = lng;
     }
 
     @Override
@@ -27,15 +30,13 @@ public class LatLng implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel out, int i) {
-        out.writeDouble(lat);
-        out.writeDouble(lng);
-        out.writeDouble(earthRadius);
+        out.writeDouble(mLat);
+        out.writeDouble(mLng);
     }
 
     protected LatLng(Parcel in) {
-        lat = in.readDouble();
-        lng = in.readDouble();
-        earthRadius = in.readDouble();
+        mLat = in.readDouble();
+        mLng = in.readDouble();
     }
 
     public static final Creator<LatLng> CREATOR = new Creator<LatLng>() {
@@ -51,83 +52,45 @@ public class LatLng implements Parcelable {
     };
 
     public double getLat() {
-        return lat;
+        return mLat;
     }
 
     public void setLat(double lat) {
-        this.lat = lat;
+        this.mLat = lat;
     }
 
     public double getLng() {
-        return lng;
+        return mLng;
     }
 
     public void setLng(double lng) {
-        this.lng = lng;
+        this.mLng = lng;
     }
 
-    public double getEarthRadius() {
-        return earthRadius;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        LatLng latLng = (LatLng) o;
+        return Double.compare(latLng.mLat, mLat) == 0 &&
+                Double.compare(latLng.mLng, mLng) == 0;
     }
 
-    public void setEarthRadius(double earthRadius) {
-        this.earthRadius = earthRadius;
+    @Override
+    public int hashCode() {
+        return Objects.hash(mLat, mLng);
     }
 
-    private double toRadians(double degrees) {
-        return degrees * Math.PI / 180;
+    public double distanceTo(LatLng to) {
+        return LatLngUtil.distance(this, to);
     }
 
-    private double toDegrees(double radians) {
-        return radians * 180 / Math.PI;
+    public float bearingTo(LatLng to) {
+        return LatLngUtil.bearing(this, to);
     }
 
-
-    public double distanceTo(LatLng p2) {
-        double p1Lat = toRadians(this.lat);
-        double p1Lng = toRadians(this.lng);
-        double p2Lat = toRadians(p2.lat);
-        double p2Lng = toRadians(p2.lng);
-        double l = p2Lat - p1Lat;
-        double g = p2Lng - p1Lng;
-
-        double a = Math.sin(l / 2) * Math.sin(l / 2)
-                + Math.cos(p1Lat) * Math.cos(p2Lat)
-                * Math.sin(g / 2) * Math.sin(g / 2);
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-        return this.earthRadius * c;
+    public LatLng offset(double distance, float bearing) {
+        return LatLngUtil.offset(this, distance, bearing);
     }
-
-
-    public float bearingTo(LatLng p2) {
-        double p1Lat = toRadians(this.lat);
-        double p2Lat = toRadians(p2.lat);
-        double r = toRadians(p2.lng - this.lng);
-
-        // see http://mathforum.org/library/drmath/view/55417.html
-        double y = Math.sin(r) * Math.cos(p2Lat);
-        double x = Math.cos(p1Lat) * Math.sin(p2Lat) -
-                Math.sin(p1Lat) * Math.cos(p2Lat) * Math.cos(r);
-        double o = Math.atan2(y, x);
-
-        return (float) ((toDegrees(o) + 360) % 360);
-    }
-
-    public LatLng destinationPoint(double distance, float bearing) {
-        double r = distance / this.earthRadius; // angular distance in radians
-        double b = toRadians(bearing);
-
-        double p1Lat = toRadians(this.lat);
-        double p1Lng = toRadians(this.lng);
-
-        double p2Lat = Math.asin(Math.sin(p1Lat) * Math.cos(r) + Math.cos(p1Lat) * Math.sin(r) * Math.cos(b));
-        double x = Math.cos(r) - Math.sin(p1Lat) * Math.sin(p2Lat);
-        double y = Math.sin(b) * Math.sin(r) * Math.cos(p1Lat);
-        double p2Lng = p1Lng + Math.atan2(y, x);
-
-        return new LatLng(toDegrees(p2Lat), (toDegrees(p2Lng) + 540) % 360 - 180); // normalise to −180..+180°
-    }
-
 
 }

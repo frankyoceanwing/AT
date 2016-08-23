@@ -5,10 +5,10 @@ import android.os.Environment;
 
 import java.io.File;
 
-/**
- * Created by franky on 16/8/10.
- */
-public class StorageUtils {
+public class StorageUtil {
+
+    private StorageUtil() {
+    }
 
     /* Checks if external storage is available for read and write */
     public static boolean isExternalWritable() {

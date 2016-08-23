@@ -6,6 +6,25 @@
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
+
+        <item name="android:windowContentOverlay">@null</item>
+
+        <item name="android:spinnerStyle">@style/AppSpinner</item>
+
+        <item name="colorButtonNormal">@color/colorPrimary</item>
+        <item name="colorControlActivated">@color/colorAccent</item>
+        <item name="colorControlHighlight">@color/cyan300</item>
+
+        <item name="colorControlNormal">@color/textColorHint</item>
+
+        <item name="android:windowBackground">@color/windowBackground</item>
+        <item name="android:textColorPrimary">@color/textColorPrimary</item>
+        <item name="android:textColorHint">@color/textColorHint</item>
+
+    </style>
+
+    <style name="AppSpinner" parent="Widget.AppCompat.Spinner">
+        <item name="android:background">@color/windowBackground</item>
     </style>
 
 </resources>

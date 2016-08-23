@@ -1,33 +1,91 @@
 <resources>
     <string name="app_name">AT</string>
-    <string name="speed">Max Speed</string>
+    <string name="taskSpeed">Speed (KMH)</string>
     <string name="speed_unit">km/h</string>
     <string name="origin">Origin</string>
     <string name="destination">Destination</string>
     <string name="latitude">Latitude</string>
     <string name="longitude">Longitude</string>
-    <string name="start">Start</string>
-    <string name="stop">Stop</string>
+    <string name="taskStart">Start</string>
+    <string name="taskStop">Stop</string>
     <string name="console">Console</string>
     <string name="options">Options</string>
-    <string name="preference_file_key">com.oceanwing.at.PREFERENCE_FILE_KEY</string>
-    <string name="api">Routing</string>
-    <string name="api_here">HERE</string>
-    <string name="api_google">Google</string>
+    <string name="taskAPIHere">HERE</string>
+    <string name="taskAPIGoogle">Google</string>
     <string name="validation_required" formatted="false">%s is required</string>
     <string name="validation_range" formatted="false">%s should in the (%.0f, %.0f) range</string>
-    <string name="run">Run</string>
-    <string name="run_once">Once</string>
-    <string name="run_forever">Forever</string>
+    <string name="taskRunOnce">Once</string>
+    <string name="taskRunForever">Forever</string>
     <string name="scheme">mockgps</string>
     <string name="host">com.oceanwing.at</string>
     <string name="path" formatted="false">/path</string>
-    <string name="pause">Pause</string>
-    <string name="resume">Resume</string>
+    <string name="taskPause">Pause</string>
     <string name="gps">GPS</string>
 
-    <string-array name="apis">
-        <item>@string/api_here</item>
-        <item>@string/api_google</item>
+    <string name="routes">Routes</string>
+    <string name="records">Records</string>
+    <string name="app_subtitle">Able To</string>
+    <string name="taskName">Task Name</string>
+    <string name="taskAddWaypoint">Add Waypoint</string>
+    <string name="taskAPI">API</string>
+    <string name="taskOnline">Online</string>
+    <string name="updateInterval">Interval (s)</string>
+    <string name="taskSave">Save</string>
+    <string name="taskSteady">Steady</string>
+    <string name="taskRun">Run</string>
+    <string name="taskRunN">N</string>
+    <string name="lat">Lat</string>
+    <string name="lng">Lng</string>
+    <string name="parking">Parking (s)</string>
+    <string name="taskTransport">Transport</string>
+    <string name="taskTransportDriving">Driving</string>
+    <string name="taskTransportWalking">Walking</string>
+
+    <string name="taskTraffic">Traffic</string>
+
+    <string name="taskMode">Mode</string>
+    <string name="taskHereModeFast">Fast</string>
+    <string name="taskHereModeShortest">Shortest</string>
+    <string name="taskGoogleModeBestGuess">Best_Guess</string>
+    <string name="taskGoogleModePessimistic">Pessimistic</string>
+    <string name="taskGoogleModeOptimistic">Optimistic</string>
+
+    <string name="taskAvoidTolls">Tolls</string>
+    <string name="taskAvoidFerries">Ferries</string>
+    <string name="taskAvoidHighways">Highways</string>
+    <string name="taskSaveSucc">Task Saved.</string>
+    <string name="taskSaveFail">Save failed.</string>
+
+    <string-array name="tabs">
+        <item>@string/routes</item>
+        <item>@string/records</item>
     </string-array>
+
+    <string-array name="taskAPIs">
+        <item>@string/taskAPIHere</item>
+        <item>@string/taskAPIGoogle</item>
+    </string-array>
+
+    <string-array name="taskTransports">
+        <item>@string/taskTransportDriving</item>
+        <item>@string/taskTransportWalking</item>
+    </string-array>
+
+    <string-array name="taskHereModes">
+        <item>@string/taskHereModeFast</item>
+        <item>@string/taskHereModeShortest</item>
+    </string-array>
+
+    <string-array name="taskGoogleModes">
+        <item>@string/taskGoogleModeBestGuess</item>
+        <item>@string/taskGoogleModePessimistic</item>
+        <item>@string/taskGoogleModeOptimistic</item>
+    </string-array>
+
+    <string-array name="taskAvoids">
+        <item>@string/taskAvoidTolls</item>
+        <item>@string/taskAvoidFerries</item>
+        <item>@string/taskAvoidHighways</item>
+    </string-array>
+    <string name="title_activity_runner">RunnerActivity</string>
 </resources>
