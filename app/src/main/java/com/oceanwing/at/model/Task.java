@@ -39,7 +39,11 @@ public class Task implements Parcelable {
 
     public Task(Type type, List<Waypoint> waypoints) {
         mType = type;
-        mRoutingConfig = new RoutingConfig(waypoints);
+        if (mRoutingConfig == null) {
+            mRoutingConfig = new RoutingConfig(waypoints);
+        } else {
+            mRoutingConfig.setWaypoints(waypoints);
+        }
     }
 
 

@@ -3,7 +3,6 @@ package com.oceanwing.at;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.util.Log;
@@ -324,10 +323,10 @@ public class TaskActivity extends AppCompatActivity implements Validator.Validat
                 mTaskWaypointOriginParking.setText(String.valueOf(origin.getParking()));
             }
             if (waypoints.size() > 1) {
-                Waypoint origin = waypoints.get(1);
-                mTaskWaypointDestLat.setText(String.format("%.6f", origin.getLatLng().getLat()));
-                mTaskWaypointDestLng.setText(String.format("%.6f", origin.getLatLng().getLng()));
-                mTaskWaypointDestParking.setText(String.valueOf(origin.getParking()));
+                Waypoint dest = waypoints.get(1);
+                mTaskWaypointDestLat.setText(String.format("%.6f", dest.getLatLng().getLat()));
+                mTaskWaypointDestLng.setText(String.format("%.6f", dest.getLatLng().getLng()));
+                mTaskWaypointDestParking.setText(String.valueOf(dest.getParking()));
             }
         }
     }

@@ -5,12 +5,15 @@ import android.os.Parcelable;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
+import com.oceanwing.at.routing.google.DestinationsRequest;
 import com.oceanwing.at.routing.here.RouteFeature;
 import com.oceanwing.at.routing.here.RoutingMode;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 public class RoutingConfig implements Parcelable {
 
@@ -237,34 +240,40 @@ public class RoutingConfig implements Parcelable {
         return routingMode;
     }
 
-    private RoutingMode parseGoogleMode() {
-        RoutingMode.TransportMode mode = RoutingMode.TransportMode.CAR;
-        switch (mTransport) {
-            case HERE_TRANSPORT_PEDESTRIAN:
-                mode = RoutingMode.TransportMode.PEDESTRIAN;
-                break;
-        }
-        RoutingMode.Type type = RoutingMode.Type.FASTEST;
-        switch (mMode) {
-            case HERE_MODE_SHOR:
-                type = RoutingMode.Type.SHORTEST;
-                break;
-        }
-        RoutingMode.TrafficMode trafficMode = mTraffic ? RoutingMode.TrafficMode.ENABLED : RoutingMode.TrafficMode.DISABLED;
-        RoutingMode routingMode = new RoutingMode(type, mode, trafficMode);
-        List<RouteFeature> routeFeatures = new ArrayList<>();
+    public Set<DestinationsRequest.Avoid> parseGoogleAvoids() {
+        Set<DestinationsRequest.Avoid> avoids = new HashSet<>();
         if (mAvoidTolls) {
-            routeFeatures.add(new RouteFeature(RouteFeature.Type.TOLL_ROAD, RouteFeature.Weight.STRICT_EXCLUDE));
+            avoids.add(DestinationsRequest.Avoid.TOLLS);
         }
         if (mAvoidFerries) {
-            routeFeatures.add(new RouteFeature(RouteFeature.Type.RAIL_FERRY, RouteFeature.Weight.STRICT_EXCLUDE));
-            routeFeatures.add(new RouteFeature(RouteFeature.Type.BOAT_FERRY, RouteFeature.Weight.STRICT_EXCLUDE));
+            avoids.add(DestinationsRequest.Avoid.FERRIES);
         }
         if (mAvoidHighways) {
-            routeFeatures.add(new RouteFeature(RouteFeature.Type.MOTORWAY, RouteFeature.Weight.STRICT_EXCLUDE));
+            avoids.add(DestinationsRequest.Avoid.HIGHWAYS);
         }
-        routingMode.setFeatures(routeFeatures);
-        return routingMode;
+        return avoids;
+    }
 
+    public DestinationsRequest.Mode parseGoogleMode() {
+        DestinationsRequest.Mode mode = DestinationsRequest.Mode.DRIVING;
+        switch (mTransport) {
+            case GOOGLE_TRANSPORT_WALKING:
+                mode = DestinationsRequest.Mode.WALKING;
+                break;
+        }
+        return mode;
+    }
+
+    public DestinationsRequest.TrafficModel parseGoogleTrafficModel() {
+        DestinationsRequest.TrafficModel mode = DestinationsRequest.TrafficModel.BEST_GUESS;
+        switch (mMode) {
+            case GOOGLE_MODE_OPTIMISTIC:
+                mode = DestinationsRequest.TrafficModel.OPTIMISTIC;
+                break;
+            case GOOGLE_MODE_PESSIMISTIC:
+                mode = DestinationsRequest.TrafficModel.PESSIMISTIC;
+                break;
+        }
+        return mode;
     }
 }

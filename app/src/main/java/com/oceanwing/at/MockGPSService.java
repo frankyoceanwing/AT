@@ -246,7 +246,7 @@ public class MockGPSService extends IntentService {
         RoutingConfig routingConfig = task.getRoutingConfig();
         List<Waypoint> waypoints = routingConfig.getWaypoints();
         Waypoint origin = waypoints.get(0);
-        Waypoint dest = waypoints.get(1);
+        Waypoint dest = waypoints.get(waypoints.size() - 1);
 
         RunnerConfig runnerConfig = task.getRunnerConfig();
         List<Position> positions = runnerConfig.getPositions();
@@ -317,7 +317,12 @@ public class MockGPSService extends IntentService {
                     }
 
                     Log.i(TAG, log);
-                    mBroadcaster.broadcast(state, (i + 1), log);
+                    mBroadcaster.broadcast(state, (sIsPaused ? (i + 1) : i), log);
+
+                    if (i == 1 && origin.getParking() > 0) {
+                        mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_MOCKING, (sIsPaused ? (i + 1) : i), "== parking ==");
+                        Thread.sleep(origin.getParking() * 1000);
+                    }
 
                     long wait = runnerConfig.getUpdateInterval() * 1000;
                     double stepDistance = runnerConfig.getUpdateInterval() * runnerConfig.getSpeed() / 3600D; // 单位距离(1s 走的距离 km)
@@ -328,14 +333,20 @@ public class MockGPSService extends IntentService {
                     Thread.sleep(wait);
                 }
                 if (next != null) {
-                    log = String.format("offset(%.6f, %.6f)", next.getLatLng().getLat(), next.getLatLng().getLng());
+                    log = String.format("== mocking == [destination] (%.6f, %.6f)", next.getLatLng().getLat(), next.getLatLng().getLng());
                     Log.i(TAG, log);
                     setLocation(mMockProviderName, next.getLatLng().getLat(), next.getLatLng().getLng(), 0, 0);
                     mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_MOCKING, positions.size(), log);
+
+                    if (dest.getParking() > 0) {
+                        mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_MOCKING, positions.size(), "== parking ==");
+                        Thread.sleep(dest.getParking() * 1000);
+                    }
+
                 }
             }
         } catch (IOException e) {
-            Log.e(TAG, "failed to save points", e);
+            Log.e(TAG, "failed to save task", e);
         } catch (IllegalArgumentException e) {
             Log.e(TAG, "failed to set location", e);
         } catch (InterruptedException e) {
@@ -352,7 +363,7 @@ public class MockGPSService extends IntentService {
         List<Position> positions = new ArrayList<>();
         List<Waypoint> waypoints = routingConfig.getWaypoints();
         Waypoint origin = waypoints.get(0);
-        Waypoint dest = waypoints.get(1);
+        Waypoint dest = waypoints.get(waypoints.size() - 1);
 
         switch (routingConfig.getAPI()) {
             case HERE:
@@ -385,6 +396,9 @@ public class MockGPSService extends IntentService {
                 DestinationsRequest googleRequest = new DestinationsRequest(API_KEY,
                         new com.oceanwing.at.routing.google.LatLng(origin.getLatLng().getLat(), origin.getLatLng().getLng()),
                         new com.oceanwing.at.routing.google.LatLng(dest.getLatLng().getLat(), dest.getLatLng().getLng()));
+                googleRequest.setMode(routingConfig.parseGoogleMode());
+                googleRequest.setTrafficModel(routingConfig.parseGoogleTrafficModel());
+                googleRequest.setAvoids(routingConfig.parseGoogleAvoids());
                 Call<DestinationsResponse> call = GoogleMapAPI.getInstance().destinations().getDestinations(googleRequest.toMap());
                 Response<DestinationsResponse> googleResp = call.execute();
                 if (googleResp.isSuccessful()) {

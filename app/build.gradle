@@ -52,6 +52,5 @@ dependencies {
     compile 'org.apache.commons:commons-lang3:3.4'
 
     compile 'com.mobsandgeeks:android-saripaar:2.0.3'
-    compile 'com.github.baoyachi:StepView:1.8.1'
     compile 'com.getbase:floatingactionbutton:1.10.1'
 }

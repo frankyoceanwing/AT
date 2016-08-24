@@ -21,6 +21,24 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <!-- 兼容老接口 -->
+        <activity
+            android:name=".ATCompatActivity">
+            <intent-filter>
+                <action android:name="com.oceanwing.at.action.START"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data
+                    android:host="@string/host"
+                    android:path="@string/path"
+                    android:scheme="@string/scheme"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.oceanwing.at.action.STOP"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </activity>
+
         <activity
             android:name=".TaskActivity"
             android:windowSoftInputMode="stateHidden">
