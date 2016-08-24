@@ -209,7 +209,8 @@ public class ATCompatActivity extends Activity {
     private Waypoint parseWaypoint(Uri data, String key) {
         String query = data.getQueryParameter(key);
         String[] latLngParking = StringUtils.split(query, ",");
-        if (latLngParking.length == 2 || latLngParking.length == 3) {
+        if (latLngParking == null
+                || (latLngParking.length != 2 && latLngParking.length != 3)) {
             return null;
         }
         double lat, lng;
