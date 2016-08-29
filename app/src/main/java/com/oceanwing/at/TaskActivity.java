@@ -470,7 +470,7 @@ public class TaskActivity extends AppCompatActivity implements Validator.Validat
         mTask.getRunnerConfig().setUpdateInterval(Long.valueOf(mTaskUpdateInterval.getText().toString()));
 
         String runN = mTaskRunN.getText().toString();
-        if (StringUtils.isNoneBlank(runN)) {
+        if (StringUtils.isNotBlank(runN)) {
             mTask.getRunnerConfig().setRun(runN);
         } else {
             mTask.getRunnerConfig().setRun(mTaskRunOnce.isChecked() ? mTaskRunOnce.getText().toString()

@@ -239,26 +239,27 @@ public class MockGPSService extends IntentService {
     }
 
     private void handleActionStart(Task task) {
-        sIsStopped = false;
-
-        mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_STARTED, "== start ==");
-
-        RoutingConfig routingConfig = task.getRoutingConfig();
-        List<Waypoint> waypoints = routingConfig.getWaypoints();
-        Waypoint origin = waypoints.get(0);
-        Waypoint dest = waypoints.get(waypoints.size() - 1);
-
-        RunnerConfig runnerConfig = task.getRunnerConfig();
-        List<Position> positions = runnerConfig.getPositions();
-
-        Log.i(TAG, String.format("api[%s] (%.6f, %.6f) -> (%.6f, %.6f) run %s at %.2f KPH",
-                routingConfig.getAPI(),
-                origin.getLatLng().getLat(), origin.getLatLng().getLng(),
-                dest.getLatLng().getLat(), dest.getLatLng().getLng(),
-                runnerConfig.getRun(), runnerConfig.getSpeed()));
-
         try {
-            if (runnerConfig.isOnline() || positions.isEmpty()) {
+            sIsStopped = false;
+
+            mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_STARTED, "== start ==");
+
+            RunnerConfig runnerConfig = task.getRunnerConfig();
+            List<Position> positions = runnerConfig.getPositions();
+
+            Waypoint origin = null;
+            Waypoint dest = null;
+
+            RoutingConfig routingConfig = task.getRoutingConfig();
+            if (routingConfig != null && (runnerConfig.isOnline() || positions.isEmpty())) {
+                List<Waypoint> waypoints = routingConfig.getWaypoints();
+                origin = waypoints.get(0);
+                dest = waypoints.get(waypoints.size() - 1);
+                Log.i(TAG, String.format("api[%s] (%.6f, %.6f) -> (%.6f, %.6f) run %s at %.2f KPH",
+                        routingConfig.getAPI(),
+                        origin.getLatLng().getLat(), origin.getLatLng().getLng(),
+                        dest.getLatLng().getLat(), dest.getLatLng().getLng(),
+                        runnerConfig.getRun(), runnerConfig.getSpeed()));
                 positions = calcRoute(routingConfig);
 
                 positions = optimizePositions(routingConfig, runnerConfig, positions);
@@ -270,7 +271,7 @@ public class MockGPSService extends IntentService {
             Position current, next = null;
             String log;
             int state = BroadcastNotifier.STATE_ACTION_ERROR;
-            float bearing;
+            float bearing, speed;
             double distance = 0;
 
             long run;
@@ -291,12 +292,13 @@ public class MockGPSService extends IntentService {
                     if (isTestProviderEnabled(mMockProviderName)) {
                         current = positions.get(i);
                         next = positions.get(i + 1);
-                        bearing = current.getLatLng().bearingTo(next.getLatLng());
+                        bearing = current.getBearing() == 0 ? current.getLatLng().bearingTo(next.getLatLng()) : current.getBearing();
+                        speed = runnerConfig.getSpeed() == 0 ? kph2mps(runnerConfig.getSpeed()) : current.getSpeed();
                         distance = current.getLatLng().distanceTo(next.getLatLng());
 
                         setLocation(mMockProviderName,
                                 current.getLatLng().getLat(), current.getLatLng().getLng(),
-                                bearing, kph2mps(runnerConfig.getSpeed()));
+                                bearing, speed);
 
                         log = String.format("== mocking == [%5d / %5d] (%.6f, %.6f) -> (%.6f, %.6f), bearing = %.0f, distance = %.3f KM",
                                 (i + 1), positions.size(),
@@ -319,7 +321,7 @@ public class MockGPSService extends IntentService {
                     Log.i(TAG, log);
                     mBroadcaster.broadcast(state, (sIsPaused ? (i + 1) : i), log);
 
-                    if (i == 1 && origin.getParking() > 0) {
+                    if (i == 1 && origin != null && origin.getParking() > 0) {
                         mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_MOCKING, (sIsPaused ? (i + 1) : i), "== parking ==");
                         Thread.sleep(origin.getParking() * 1000);
                     }
@@ -335,10 +337,10 @@ public class MockGPSService extends IntentService {
                 if (next != null) {
                     log = String.format("== mocking == [destination] (%.6f, %.6f)", next.getLatLng().getLat(), next.getLatLng().getLng());
                     Log.i(TAG, log);
-                    setLocation(mMockProviderName, next.getLatLng().getLat(), next.getLatLng().getLng(), 0, 0);
+                    setLocation(mMockProviderName, next.getLatLng().getLat(), next.getLatLng().getLng(), next.getBearing(), next.getSpeed());
                     mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_MOCKING, positions.size(), log);
 
-                    if (dest.getParking() > 0) {
+                    if (dest != null && dest.getParking() > 0) {
                         mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_MOCKING, positions.size(), "== parking ==");
                         Thread.sleep(dest.getParking() * 1000);
                     }

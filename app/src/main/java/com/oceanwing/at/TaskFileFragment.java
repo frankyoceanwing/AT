@@ -54,16 +54,16 @@ public class TaskFileFragment extends Fragment {
         List<TaskFile> items = new ArrayList<>();
         switch (mTaskType) {
             case MOCK:
-                items = getTasks(TaskFile.DIR_ROUTES);
+                items = getTasks(TaskFile.DIR_ROUTES, mTaskType);
                 break;
             case RECORD:
-                items = getTasks(TaskFile.DIR_RECORDS);
+                items = getTasks(TaskFile.DIR_RECORDS, mTaskType);
                 break;
         }
         mRootView.setAdapter(new TaskFileAdapter(items));
     }
 
-    private List<TaskFile> getTasks(String dir) {
+    private List<TaskFile> getTasks(String dir, Task.Type type) {
         List<TaskFile> taskFiles = new ArrayList<>();
         if (StorageUtil.isExternalWritable()) {
             File f = new File(StorageUtil.getExternalAppFilesDir(getContext(), dir));
@@ -78,7 +78,7 @@ public class TaskFileFragment extends Fragment {
                 }
             });
             for (File file : files) {
-                taskFiles.add(new TaskFile(getBaseName(file.getName()), file.length(), file.lastModified()));
+                taskFiles.add(new TaskFile(type, getBaseName(file.getName()), file.length(), file.lastModified()));
             }
         }
         return taskFiles;
