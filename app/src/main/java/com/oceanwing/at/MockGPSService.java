@@ -271,8 +271,8 @@ public class MockGPSService extends IntentService {
             Position current, next = null;
             String log;
             int state = BroadcastNotifier.STATE_ACTION_ERROR;
-            float bearing, speed;
-            double distance = 0;
+            float acc, bearing, speed;
+            double alt, distance = 0;
 
             long run;
             switch (runnerConfig.getRun()) {
@@ -292,13 +292,15 @@ public class MockGPSService extends IntentService {
                     if (isTestProviderEnabled(mMockProviderName)) {
                         current = positions.get(i);
                         next = positions.get(i + 1);
+                        alt = current.getAltitude();
+                        acc = current.getAccuracy() == 0 ? Criteria.ACCURACY_FINE : current.getAccuracy();
                         bearing = current.getBearing() == 0 ? current.getLatLng().bearingTo(next.getLatLng()) : current.getBearing();
                         speed = runnerConfig.getSpeed() == 0 ? kph2mps(runnerConfig.getSpeed()) : current.getSpeed();
                         distance = current.getLatLng().distanceTo(next.getLatLng());
 
                         setLocation(mMockProviderName,
-                                current.getLatLng().getLat(), current.getLatLng().getLng(),
-                                bearing, speed);
+                                current.getLatLng().getLat(), current.getLatLng().getLng(), alt,
+                                acc, bearing, speed);
 
                         log = String.format("== mocking == [%5d / %5d] (%.6f, %.6f) -> (%.6f, %.6f), bearing = %.0f, distance = %.3f KM",
                                 (i + 1), positions.size(),
@@ -337,7 +339,8 @@ public class MockGPSService extends IntentService {
                 if (next != null) {
                     log = String.format("== mocking == [destination] (%.6f, %.6f)", next.getLatLng().getLat(), next.getLatLng().getLng());
                     Log.i(TAG, log);
-                    setLocation(mMockProviderName, next.getLatLng().getLat(), next.getLatLng().getLng(), next.getBearing(), next.getSpeed());
+                    setLocation(mMockProviderName, next.getLatLng().getLat(), next.getLatLng().getLng(), next.getAltitude(),
+                            next.getAccuracy() == 0 ? Criteria.ACCURACY_FINE : next.getAccuracy(), next.getBearing(), next.getSpeed());
                     mBroadcaster.broadcast(BroadcastNotifier.STATE_ACTION_MOCKING, positions.size(), log);
 
                     if (dest != null && dest.getParking() > 0) {
@@ -424,12 +427,13 @@ public class MockGPSService extends IntentService {
     }
 
 
-    private void setLocation(String mockProviderName, double latitude, double longitude, float bearing, float speed) {
+    private void setLocation(String mockProviderName, double latitude, double longitude, double altitude, float accuracy, float bearing, float speed) {
         Location loc = new Location(mockProviderName);
-        loc.setAccuracy(Criteria.ACCURACY_FINE);
+        loc.setAccuracy(accuracy);
         loc.setTime(System.currentTimeMillis());
         loc.setLatitude(latitude);
         loc.setLongitude(longitude);
+        loc.setAltitude(altitude);
         loc.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos());
         loc.setBearing(bearing);
 
