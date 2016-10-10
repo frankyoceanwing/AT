@@ -113,7 +113,12 @@ public class GTTaskActivity extends AppCompatActivity {
         ButterKnife.bind(this);
 
         getSupportActionBar().setElevation(0);
+    }
 
+    @Override
+    protected void onResume() {
+        Log.i(TAG, "onResume");
+        super.onResume();
         try {
             getTask();
         } catch (IOException e) {

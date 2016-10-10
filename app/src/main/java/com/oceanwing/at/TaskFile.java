@@ -6,6 +6,7 @@ import android.util.Log;
 import com.oceanwing.at.model.Position;
 import com.oceanwing.at.model.Task;
 import com.oceanwing.at.util.CSVUtil;
+import com.oceanwing.at.util.GPSUtil;
 import com.oceanwing.at.util.JSONUtil;
 import com.oceanwing.at.util.StorageUtil;
 
@@ -107,7 +108,8 @@ public class TaskFile {
                         if (row.length != 8) {
                             continue;
                         }
-                        position = new Position(Double.valueOf(row[1]), Double.valueOf(row[0]));
+                        // TODO add a config item
+                        position = new Position(GPSUtil.transform(Double.valueOf(row[1]), Double.valueOf(row[0])));
                         position.setAccuracy(Float.valueOf(row[2]));
                         position.setBearing(Float.valueOf(row[3]));
                         position.setSpeed(Float.valueOf(row[4]));

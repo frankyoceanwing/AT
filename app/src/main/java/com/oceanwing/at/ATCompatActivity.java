@@ -39,6 +39,9 @@ public class ATCompatActivity extends Activity {
                     break;
                 case MockGPSService.ACTION_STOP:
                     stop();
+                    break;
+                default:
+                    break;
             }
         }
         finish();

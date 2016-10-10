@@ -76,8 +76,8 @@ public class MockGPSService extends IntentService {
 
     @Override
     public void onCreate() {
-        Log.i(TAG, "onCreate");
         super.onCreate();
+        Log.i(TAG, "onCreate");
         sContext = this;
 
         foreground();
@@ -91,10 +91,6 @@ public class MockGPSService extends IntentService {
 
     @Override
     public void onDestroy() {
-        Log.i(TAG, "onDestroy");
-        if (!sIsStopped) {
-            stop(sContext);
-        }
         super.onDestroy();
         sContext = null;
     }
@@ -192,7 +188,7 @@ public class MockGPSService extends IntentService {
         sTask = null;
         Log.i(TAG, "stop");
         removeTestProvider(mMockProviderName);
-        Intent intent = new Intent(context, MockGPSService.class);
+        Intent intent = new Intent(sContext.getApplicationContext(), MockGPSService.class);
         intent.setAction(ACTION_STOP);
         context.stopService(intent);
         sIsStopped = true;

@@ -84,10 +84,10 @@
             android:value="7.2"/>
         <meta-data
             android:name="HERE_MAP_APP_ID"
-            android:value="c7UDnNWvQl2dypUlW2YX"/>
+            android:value="LFoqHzQhCecba1EUdTXx"/>
         <meta-data
             android:name="HERE_MAP_APP_CODE"
-            android:value="7aWDOy8CdYqbD-AXqa9Jbw"/>
+            android:value="38LxewVk70H6eJpKj9Zw9g"/>
         <meta-data
             android:name="GOOGLE_MAP_API_KEY"
             android:value="AIzaSyBc6iEK9pI1kwJAyPvCdS0tpeQZyJU8igQ"/>

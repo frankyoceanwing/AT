@@ -31,7 +31,6 @@ public class RunnerActivity extends AppCompatActivity {
     @OnClick(R.id.task_stop)
     void stop() {
         MockGPSService.stop(mContext);
-        finish();
     }
 
     @BindView(R.id.task_pause)

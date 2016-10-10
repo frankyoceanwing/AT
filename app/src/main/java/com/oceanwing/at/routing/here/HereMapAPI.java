@@ -24,7 +24,7 @@ public class HereMapAPI {
         }
         if (mRetrofit == null) {
             mRetrofit = new Retrofit.Builder()
-                    .baseUrl("https://route.api.here.com/")
+                    .baseUrl("https://route.cit.api.here.com/")
                     .addConverterFactory(GsonConverterFactory.create())
                     .build();
         }
